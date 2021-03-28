@@ -13,13 +13,13 @@ class runModel:
         super(runModel, self).__init__()
         self.keep_going = False
         self.load_path = "./runs/2021-03-25/acc80_epoch267_256_128_256"  # 继续训练时，要加载的参数文件
-        self.batch_size = 20  # 分批训练数据、每批数据量
+        self.batch_size = 30  # 分批训练数据、每批数据量
         self.learning_rate = 0.01  #1e-2  # 学习率
-        self.num_epoches = 200  # 训练次数
+        self.num_epoches = 500  # 训练次数
         self.n_classes = 8  # 类别数
         # 保存用于可视化观察参数变化的列表
         self.loss_list, self.lr_list, self.acc_list = [], [], []  # 记录损失值\学习率\准确率变化
-        self.layer_list = [128, 64, 32]
+        self.layer_list = [512, 256, 128]
         self.model = MyFC(self.layer_list, 42, self.n_classes)
         self.train_loader = MyDataLoader(batch_size=self.batch_size).train()
         self.test_loader = MyDataLoader(batch_size=self.batch_size).test()
