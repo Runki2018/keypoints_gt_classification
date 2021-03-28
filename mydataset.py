@@ -20,11 +20,33 @@ class MyDataSet(Dataset):
 
     def __getitem__(self, idx):
         """每次返回一个样本的标签和关键点"""
-        keypoints = torch.tensor(self.keypoints_list[idx])
+        keypoints = torch.tensor(self.keypoints_list[idx])  # (1,42)
+        keypoints = self.translation(keypoints)
         # label = torch.zeros((1, 8), dtype=torch.float)  # one-hot code for MSELoss
         # label[0][self.label_list[idx]-1] = 1  # one-hot code for MSELoss
         label = torch.tensor(self.label_list[idx], dtype=torch.long) - 1
         return label, keypoints
+
+    def translation(self, keypoints):
+        # x轴偏移量
+        if torch.rand(1) < 0.5:
+            x_max = keypoints[..., ::2].max()  # max([x0, x1, ..., x20])
+            offset = (1 - x_max) * torch.rand(1)  # 0~1 向右偏移量
+            keypoints[..., ::2] += offset
+        else:
+            x_min = keypoints[..., ::2].min()  # max([x0, x1, ..., x20])
+            offset = x_min * torch.rand(1)  # 0~1 向左偏移量
+            keypoints[..., ::2] -= offset
+        # y轴偏移量
+        if torch.rand(1) < 0.5:
+            y_max = keypoints[..., 1::2].max()  # max([x0, x1, ..., x20])
+            offset = (1 - y_max) * torch.rand(1)  # 0~1 向右偏移量
+            keypoints[..., 1::2] += offset
+        else:
+            y_min = keypoints[..., 1::2].min()  # max([x0, x1, ..., x20])
+            offset = y_min * torch.rand(1)  # 0~1 向左偏移量
+            keypoints[..., 1::2] -= offset
+        return keypoints
 
 
 class MyDataLoader:
@@ -33,6 +55,8 @@ class MyDataLoader:
     def __init__(self, batch_size=19):
         self.train_list = read_txt('./combine_sample/train_annotations8.txt')
         self.test_list = read_txt('./combine_sample/test_annotations8.txt')
+        # self.train_list = read_txt('./combine_sample/train_annotations.txt')
+        # self.test_list = read_txt('./combine_sample/test_annotations.txt')
         self.BATCH_SIZE = batch_size  # 一次读入多少个样本
         self.num_workers = 2  # 加载batch的线程数
 
@@ -80,12 +104,12 @@ def read_txt(file_name: str):
 if __name__ == '__main__':
     b = 20
     loader = MyDataLoader(batch_size=b).test()
-    for i, (label, keypoints) in enumerate(loader):
-        print("label = ", label)
-        print("label size = ", label.size())
-        for k in range(label.size()[0]):
-            print("argmax = ", label[k].argmax().numpy().tolist())
-        print("keypoints = ", keypoints)
-        print("size = ", keypoints.size())
+    for i, (labelx, keypointsx) in enumerate(loader):
+        print("label = ", labelx)
+        print("label size = ", labelx.size())
+        for k in range(labelx.size()[0]):
+            print("argmax = ", labelx[k].argmax().numpy().tolist())
+        print("keypoints = ", keypointsx)
+        print("size = ", keypointsx.size())
     print("样本数 = ", len(loader))
     print(loader.__len__())

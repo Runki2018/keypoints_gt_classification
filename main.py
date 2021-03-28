@@ -11,15 +11,16 @@ from FC_module import MyFC
 class runModel:
     def __init__(self):
         super(runModel, self).__init__()
-        self.keep_going = True
+        self.keep_going = False
         self.load_path = "./runs/2021-03-25/acc80_epoch267_256_128_256"  # 继续训练时，要加载的参数文件
         self.batch_size = 20  # 分批训练数据、每批数据量
-        self.learning_rate = 1e-2  # 学习率
-        self.num_epoches = 500  # 训练次数
+        self.learning_rate = 0.01  #1e-2  # 学习率
+        self.num_epoches = 200  # 训练次数
+        self.n_classes = 8  # 类别数
         # 保存用于可视化观察参数变化的列表
         self.loss_list, self.lr_list, self.acc_list = [], [], []  # 记录损失值\学习率\准确率变化
-        self.layer_list = [256, 128, 64]
-        self.model = MyFC(self.layer_list, 42, 8)
+        self.layer_list = [128, 64, 32]
+        self.model = MyFC(self.layer_list, 42, self.n_classes)
         self.train_loader = MyDataLoader(batch_size=self.batch_size).train()
         self.test_loader = MyDataLoader(batch_size=self.batch_size).test()
         self.best_acc = 0  # 最高准确类
@@ -90,7 +91,7 @@ class runModel:
 
     def test_model(self):
         self.model.eval()
-        n_classes = 8  # 类别数
+        n_classes = self.n_classes  # 类别数
         classes = ['0-其他', '1-OK', '2-手掌', '3-向上', '4-向下', '5-向右', '6-向左', '7-比心', '8-嘘']
         sum_ture = [0 for _ in range(n_classes)]  # 正确个数
         with torch.no_grad():
@@ -104,7 +105,8 @@ class runModel:
         print("label = \t", label)
         print("predict_index = \t", predict_index)
         for i in range(n_classes):
-            print("类别 {}\t的数量为 {} ".format(classes[i + 1], sum_ture[i]))
+            print("类别 {}\t的数量为 {} ".format(classes[i + 1], sum_ture[i]))  # 8类
+            # print("类别 {}\t的数量为 {} ".format(classes[i], sum_ture[i]))  # 9类
         total = len(self.test_loader) * self.batch_size
         accuracy = sum(sum_ture) / total
         print("sum_true = {}, len = {} , total = {} ".format(sum_ture, len(self.test_loader), total))
