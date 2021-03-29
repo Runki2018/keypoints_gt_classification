@@ -8,10 +8,11 @@ from torch.utils.data import DataLoader, Dataset
 class MyDataSet(Dataset):
     """自定义数据集"""
 
-    def __init__(self, samples, transform=None):
+    def __init__(self, samples, mode='train'):
         self.label_list = samples[0]  # list
         self.keypoints_list = samples[1]  # list
-        self.transform = transform
+        self.mode = mode
+        # self.transform = transform
         self.n_class = 8
 
     def __len__(self):
@@ -21,7 +22,8 @@ class MyDataSet(Dataset):
     def __getitem__(self, idx):
         """每次返回一个样本的标签和关键点"""
         keypoints = torch.tensor(self.keypoints_list[idx])  # (1,42)
-        keypoints = self.translation(keypoints)
+        if self.mode == 'train' and torch.rand(1) > 0.5:
+            keypoints = self.translation(keypoints)
         # label = torch.zeros((1, 8), dtype=torch.float)  # one-hot code for MSELoss
         # label[0][self.label_list[idx]-1] = 1  # one-hot code for MSELoss
         label = torch.tensor(self.label_list[idx], dtype=torch.long) - 1
@@ -62,7 +64,7 @@ class MyDataLoader:
 
     def train(self):
         training_set = MyDataSet(samples=self.train_list,
-                                 transform=transforms.ToTensor())
+                                 mode="train")
         train_loader = DataLoader(
             dataset=training_set, batch_size=self.BATCH_SIZE,
             shuffle=True, num_workers=self.num_workers)
@@ -70,7 +72,7 @@ class MyDataLoader:
 
     def test(self):
         training_set = MyDataSet(samples=self.test_list,
-                                 transform=transforms.ToTensor())
+                                 mode="test")
         test_loader = DataLoader(
             dataset=training_set, batch_size=self.BATCH_SIZE,
             shuffle=True, num_workers=self.num_workers)

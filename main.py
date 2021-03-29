@@ -6,21 +6,23 @@ from mydataset import MyDataLoader
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from FC_module import MyFC
+from model import classifier
 
 
 class runModel:
     def __init__(self):
         super(runModel, self).__init__()
         self.keep_going = False
-        self.load_path = "./runs/2021-03-25/acc80_epoch267_256_128_256"  # 继续训练时，要加载的参数文件
+        self.load_path = "./runs/2021-03-28/77acc_311epoch_64_32_16.pt"  # 继续训练时，要加载的参数文件
         self.batch_size = 30  # 分批训练数据、每批数据量
-        self.learning_rate = 0.01  #1e-2  # 学习率
-        self.num_epoches = 500  # 训练次数
+        self.learning_rate = 0.01  # 1e-2  # 学习率
+        self.num_epoches = 700  # 训练次数
         self.n_classes = 8  # 类别数
         # 保存用于可视化观察参数变化的列表
         self.loss_list, self.lr_list, self.acc_list = [], [], []  # 记录损失值\学习率\准确率变化
-        self.layer_list = [512, 256, 128]
-        self.model = MyFC(self.layer_list, 42, self.n_classes)
+        self.layer_list = [128, 64]
+        # self.model = MyFC(self.layer_list, 42, self.n_classes)
+        self.model = classifier("./cfg/network.cfg")
         self.train_loader = MyDataLoader(batch_size=self.batch_size).train()
         self.test_loader = MyDataLoader(batch_size=self.batch_size).test()
         self.best_acc = 0  # 最高准确类
@@ -35,10 +37,10 @@ class runModel:
             device = torch.device('cpu')
 
         criterion = nn.CrossEntropyLoss().cuda(0)
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        # optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
         # criterion = nn.MSELoss().cuda(0)
-        # optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate, momentum=0.9)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
+        optimizer = torch.optim.SGD(self.model.parameters(), lr=self.learning_rate, momentum=0.9)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.9)
 
         start_epoch = 0
         if self.keep_going:  # 继续
@@ -65,6 +67,7 @@ class runModel:
                 optimizer.step()
                 with torch.no_grad():
                     sum_loss += loss.item()
+                    # print(self.model.state_dict())
             scheduler.step(epoch)
             # 更新变化列表，记录loss和lr变化
             with torch.no_grad():
@@ -77,7 +80,7 @@ class runModel:
                 self.writer.add_scalar('lr', lr, epoch)
                 self.writer.add_scalar('accuracy', acc, epoch)
 
-            if acc > self.best_acc:
+            if acc > self.best_acc or epoch == self.num_epoches - 1:
                 self.best_acc = acc
                 # 存放信息的字典:
                 param_dict = {'model_state': self.model.state_dict(),
@@ -118,8 +121,8 @@ class runModel:
         save_dir = './runs/' + time.strftime("%Y-%m-%d", time.localtime())
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
-        file_name = "/{}acc_{}epoch_{}_{}_{}.pt".format(int(acc * 100), epoch,
-                                                     self.layer_list[0], self.layer_list[1], self.layer_list[2])
+        file_name = "/{}acc_{}epoch_{}_{}.pt".format(int(acc * 100), epoch,
+                                                     self.layer_list[0], self.layer_list[1])
         save_file = save_dir + file_name
         torch.save(model_param, save_file)
 

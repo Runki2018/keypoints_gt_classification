@@ -8,12 +8,11 @@ class MyFC(nn.Module):
         # layer_list = [60, 40, 20]  # acc =  0.65
         self.fc = nn.Sequential(
             nn.Linear(d_in, layer[0]),
-            nn.LeakyReLU(),
+            nn.BatchNorm1d(layer[0]),
+            nn.LeakyReLU(0.1),
             nn.Linear(layer[0], layer[1]),
-            nn.LeakyReLU(),
-            nn.Linear(layer[1], layer[2]),
-            nn.LeakyReLU(),
-            nn.Linear(layer[2], d_out),
+            nn.LeakyReLU(0.1),
+            nn.Linear(layer[1], d_out),
         )
         self.softmax = nn.Softmax(dim=1)  # (batch, 1, 9)
         self.weight_init()
@@ -26,15 +25,13 @@ class MyFC(nn.Module):
 
     def weight_init(self):
         # 递归获得net的所有子代Module
-        inc = 0.01
         for op in self.modules():
             # 针对不同类型操作采用不同初始化方式
             if isinstance(op, nn.Linear):
                 print("weight init!!")
                 # nn.init.constant_(op.weight.data, val=2)
-                nn.init.normal_(op.weight, mean=0, std=0.1)
-                nn.init.normal_(op.weight, mean=0, std=inc)
-                inc *= 10  # 观察学的好的网络，越后的FC权重绝对值越大
+                nn.init.normal_(op.bias, mean=0, std=0.01)
+                nn.init.normal_(op.weight, mean=0, std=0.01)  # 观察了一下发现权重基本上是0.01左右
             else:  # 这里可以对Conv等操作进行其它方式的初始化
                 pass
 
