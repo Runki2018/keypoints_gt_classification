@@ -20,7 +20,7 @@ class runModel:
         self.n_classes = 8  # 类别数
         # 保存用于可视化观察参数变化的列表
         self.loss_list, self.lr_list, self.acc_list = [], [], []  # 记录损失值\学习率\准确率变化
-        self.layer_list = [128, 64]
+        self.layer_list = [128, 64, 32]
         # self.model = MyFC(self.layer_list, 42, self.n_classes)
         self.model = classifier("./cfg/network.cfg")
         self.train_loader = MyDataLoader(batch_size=self.batch_size).train()
@@ -96,7 +96,7 @@ class runModel:
         self.model.eval()
         n_classes = self.n_classes  # 类别数
         classes = ['0-其他', '1-OK', '2-手掌', '3-向上', '4-向下', '5-向右', '6-向左', '7-比心', '8-嘘']
-        sum_ture = [0 for _ in range(n_classes)]  # 正确个数
+        sum_true = [0 for _ in range(n_classes)]  # 正确个数
         with torch.no_grad():
             for label, keypoints in tqdm(self.test_loader):
                 y_predict = self.model(keypoints.cuda(0))
@@ -104,15 +104,15 @@ class runModel:
                 label = label.cuda() if torch.cuda.is_available() else label
                 for y, y_pred in zip(label, predict_index):
                     if y == y_pred:
-                        sum_ture[y] += 1
+                        sum_true[y] += 1
         print("label = \t", label)
         print("predict_index = \t", predict_index)
         for i in range(n_classes):
-            print("类别 {}\t的数量为 {} ".format(classes[i + 1], sum_ture[i]))  # 8类
+            print("类别 {}\t的数量为 {} ".format(classes[i + 1], sum_true[i]))  # 8类
             # print("类别 {}\t的数量为 {} ".format(classes[i], sum_ture[i]))  # 9类
         total = len(self.test_loader) * self.batch_size
-        accuracy = sum(sum_ture) / total
-        print("sum_true = {}, len = {} , total = {} ".format(sum_ture, len(self.test_loader), total))
+        accuracy = sum(sum_true) / total
+        print("sum_true = {}, len = {} , total = {} ".format(sum_true, len(self.test_loader), total))
         print("accuracy = ", accuracy)
         self.acc_list.append(accuracy)
         return accuracy
@@ -121,8 +121,8 @@ class runModel:
         save_dir = './runs/' + time.strftime("%Y-%m-%d", time.localtime())
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
-        file_name = "/{}acc_{}epoch_{}_{}.pt".format(int(acc * 100), epoch,
-                                                     self.layer_list[0], self.layer_list[1])
+        file_name = "/{}acc_{}epoch_{}_{}_{}.pt".format(int(acc * 100), epoch,
+                                                        self.layer_list[0], self.layer_list[1], self.layer_list[2])
         save_file = save_dir + file_name
         torch.save(model_param, save_file)
 
