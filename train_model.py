@@ -7,20 +7,23 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from FC_module import MyFC
 from model import classifier
+from utils.parse_config import parse_model_cfg
 
 
 class runModel:
     def __init__(self):
         super(runModel, self).__init__()
         self.keep_going = False
-        self.load_path = "./runs/2021-03-28/77acc_311epoch_64_32_16.pt"  # 继续训练时，要加载的参数文件
+        self.load_path = "./runs/2021-03-31/91acc_9category_1024_512_256.pt"  # 继续训练时，要加载的参数文件
         self.batch_size = 30  # 分批训练数据、每批数据量
         self.learning_rate = 0.01  # 1e-2  # 学习率
-        self.num_epoches = 700  # 训练次数
-        self.n_classes = 8  # 类别数
+        self.num_epoches = 700 # 训练次数
+        cfg_path = "./cfg/network.cfg"
+        net_block = parse_model_cfg(cfg_path)[0]  # [net]
+        self.n_classes = net_block["n_classes"]  # 类别数
         # 保存用于可视化观察参数变化的列表
         self.loss_list, self.lr_list, self.acc_list = [], [], []  # 记录损失值\学习率\准确率变化
-        self.layer_list = [128, 64, 32]
+        self.layer_list = [1024, 512, 256]
         # self.model = MyFC(self.layer_list, 42, self.n_classes)
         self.model = classifier("./cfg/network.cfg")
         self.train_loader = MyDataLoader(batch_size=self.batch_size).train()
@@ -101,6 +104,7 @@ class runModel:
             for label, keypoints in tqdm(self.test_loader):
                 y_predict = self.model(keypoints.cuda(0))
                 predict_index = y_predict.argmax(dim=1, keepdim=False)  # tensor([y0, y1, ..., y_batch])
+                # label = label.argmax(dim=1, keepdim=False)  # MSELoss
                 label = label.cuda() if torch.cuda.is_available() else label
                 for y, y_pred in zip(label, predict_index):
                     if y == y_pred:
@@ -108,8 +112,7 @@ class runModel:
         print("label = \t", label)
         print("predict_index = \t", predict_index)
         for i in range(n_classes):
-            print("类别 {}\t的数量为 {} ".format(classes[i + 1], sum_true[i]))  # 8类
-            # print("类别 {}\t的数量为 {} ".format(classes[i], sum_ture[i]))  # 9类
+            print("类别 {}\t的数量为 {} ".format(classes[i], sum_true[i]))  # 8类
         total = len(self.test_loader) * self.batch_size
         accuracy = sum(sum_true) / total
         print("sum_true = {}, len = {} , total = {} ".format(sum_true, len(self.test_loader), total))
@@ -121,8 +124,8 @@ class runModel:
         save_dir = './runs/' + time.strftime("%Y-%m-%d", time.localtime())
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
-        file_name = "/{}acc_{}epoch_{}_{}_{}.pt".format(int(acc * 100), epoch,
-                                                        self.layer_list[0], self.layer_list[1], self.layer_list[2])
+        file_name = "/{}acc_{}epoch_{}category.pt".format(int(acc * 100), epoch,
+                                                          self.n_classes)
         save_file = save_dir + file_name
         torch.save(model_param, save_file)
 
