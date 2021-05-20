@@ -112,7 +112,7 @@ if __name__ == '__main__':
     data_loader = MyDataLoader(batch_size=batch_size).test()
     confidence_threshold = 0.98  # 置信度阈值，大于该值才预测为真，否则pass
     # torch.save(model, './classification_model.pth')
-    # model = torch.load('./classification_model.pth')
+    model = torch.load('./classification_model.pth')
 
     classes = ['0-other', '1-OK', '2-palm', '3-up', '4-down', '5-right', '6-left', '7-heart', '8-hush']
     if n_classes == 8:
