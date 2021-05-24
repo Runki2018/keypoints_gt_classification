@@ -14,7 +14,7 @@ class runModel:
     def __init__(self):
         super(runModel, self).__init__()
         self.keep_going = False
-        self.load_path = "./runs/2021-03-31/91acc_9category_1024_512_256.pt"  # 继续训练时，要加载的参数文件
+        self.load_path = "weight/91acc_9category_1024_512_256.pt"  # 继续训练时，要加载的参数文件
         self.batch_size = 30  # 分批训练数据、每批数据量
         self.learning_rate = 0.01  # 1e-2  # 学习率
         self.num_epoches = 700 # 训练次数

@@ -101,7 +101,7 @@ def sort_confidence(preds):
 
 if __name__ == '__main__':
     cfg_path = "./cfg/network.cfg"
-    pt_file = "runs/2021-03-31/91acc_9category_1024_512_256.pt"
+    pt_file = "weight/91acc_9category_1024_512_256.pt"
     # pt_file = "runs/2021-04-16/93acc_699epoch_9category.pt"
     net_block = parse_model_cfg(cfg_path)[0]  # [net]
     n_classes = net_block["n_classes"]
