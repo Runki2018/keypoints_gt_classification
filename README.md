@@ -21,7 +21,7 @@
 >
 >  <table>
 >  <tr>
->   <td align="center"><img src="./doc_img/3.png" width="100%" height="auto" /></td>
+>   <td align="center"><img src="./doc_img/3.png" width="60%" height="auto" /></td>
 >  </tr>
 > </table>
 >
