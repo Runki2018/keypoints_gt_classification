@@ -3,17 +3,18 @@ import numpy as np
 import os
 from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
+from utils.parse_config import parse_model_cfg
 
 
 class MyDataSet(Dataset):
     """自定义数据集"""
 
-    def __init__(self, samples, mode='train'):
+    def __init__(self, samples, mode='train', n_classes=9):
         self.label_list = samples[0]  # list
         self.keypoints_list = samples[1]  # list
         self.mode = mode
         # self.transform = transform
-        self.n_class = 8
+        self.n_classes = n_classes
 
     def __len__(self):
         """数据集样本数"""
@@ -24,12 +25,19 @@ class MyDataSet(Dataset):
         keypoints = torch.tensor(self.keypoints_list[idx])  # (1,42)
         if self.mode == 'train' and torch.rand(1) > 0.5:
             keypoints = self.translation(keypoints)
-        # label = torch.zeros((1, 8), dtype=torch.float)  # one-hot code for MSELoss
-        # label[0][self.label_list[idx]-1] = 1  # one-hot code for MSELoss
-        label = torch.tensor(self.label_list[idx], dtype=torch.long) - 1
-        return label, keypoints
+        # label = torch.zeros(9, dtype=torch.float)  # one-hot code for MSELoss
+        # label[self.label_list[idx]] = 1  # one-hot code for MSELoss
+        if self.n_classes == 8:  # for CrossEntropyLoss
+            label = torch.tensor(self.label_list[idx], dtype=torch.long)-1
+        else:
+            label = torch.tensor(self.label_list[idx], dtype=torch.long)
+        if self.mode == "total":
+            return idx, label, keypoints  # 通过idx确定错分样本
+        else:
+            return label, keypoints
 
-    def translation(self, keypoints):
+    @staticmethod
+    def translation(keypoints):
         # x轴偏移量
         if torch.rand(1) < 0.5:
             x_max = keypoints[..., ::2].max()  # max([x0, x1, ..., x20])
@@ -55,28 +63,33 @@ class MyDataLoader:
     """数据加载器，用于加载自定义的数据集"""
 
     def __init__(self, batch_size=19):
-        self.train_list = read_txt('./combine_sample/train_annotations8.txt')
-        self.test_list = read_txt('./combine_sample/test_annotations8.txt')
-        # self.train_list = read_txt('./combine_sample/train_annotations.txt')
-        # self.test_list = read_txt('./combine_sample/test_annotations.txt')
+        cfg_path = "./cfg/network.cfg"
+        net_block = parse_model_cfg(cfg_path)[0]  # [net]
+        self.n_classes = net_block["n_classes"]
+        self.train_list = read_txt(net_block["train_set"])
+        self.test_list = read_txt(net_block["test_set"])
+        self.total_list = read_txt(net_block["total_set"])
         self.BATCH_SIZE = batch_size  # 一次读入多少个样本
         self.num_workers = 2  # 加载batch的线程数
 
     def train(self):
-        training_set = MyDataSet(samples=self.train_list,
-                                 mode="train")
-        train_loader = DataLoader(
-            dataset=training_set, batch_size=self.BATCH_SIZE,
-            shuffle=True, num_workers=self.num_workers)
+        training_set = MyDataSet(samples=self.train_list, mode="train", n_classes=self.n_classes)
+        train_loader = DataLoader(dataset=training_set, batch_size=self.BATCH_SIZE,
+                                  shuffle=True, num_workers=self.num_workers)
         return train_loader
 
     def test(self):
-        training_set = MyDataSet(samples=self.test_list,
-                                 mode="test")
-        test_loader = DataLoader(
-            dataset=training_set, batch_size=self.BATCH_SIZE,
-            shuffle=True, num_workers=self.num_workers)
+        test_set = MyDataSet(samples=self.test_list, mode="test", n_classes=self.n_classes)
+        test_loader = DataLoader(dataset=test_set, batch_size=self.BATCH_SIZE,
+                                 shuffle=True, num_workers=self.num_workers)
         return test_loader
+
+    def total_analysis(self):
+        total_set = MyDataSet(samples=self.total_list, mode="total")
+
+        total_loader = DataLoader(dataset=total_set, batch_size=self.BATCH_SIZE,
+                                  shuffle=False, num_workers=1)
+        return total_loader
 
 
 def read_txt(file_name: str):
@@ -95,11 +108,11 @@ def read_txt(file_name: str):
                     keypoints.append(float(x))
             keypoints_list.append(keypoints)
     classes = ['0-其他', '1-OK', '2-手掌', '3-向上', '4-向下', '5-向右', '6-向左', '7-比心', '8-嘘']
-    count = [0 for _ in range(8)]
+    count = [0 for _ in range(9)]
     for x in label_list:
-        count[x-1] += 1
-    for i in range(8):
-        print("类别 {}\t的数量为 {} ".format(classes[i + 1], count[i]))
+        count[x] += 1
+    for i in range(9):
+        print("类别 {}\t的数量为 {} ".format(classes[i], count[i]))
     return label_list, keypoints_list
 
 
